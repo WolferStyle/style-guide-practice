@@ -75,7 +75,6 @@ def trapezoidal(C,s):
         
         cnt=cnt+1
 
-    print cnt
     return time, Phi
     
 def trapezoidal_alt(C,s):
