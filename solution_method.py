@@ -8,7 +8,9 @@ Created on Sun Nov 15 10:31:51 2015
 import numpy as np
 from my_ode import solve_dydt
 
+
 def analyitical(tau,Phi):
+    """Returns the analytical solution at time tau."""
     # Constants
     L = 1.              # m
     D = 0.005           # m^2/s
@@ -20,26 +22,25 @@ def analyitical(tau,Phi):
     return Phi_A
 
 def trapezoidal(C,s):
+    """Returns numerical solution using the trapezoidal method."""
     # Constants
     L = 1.              # m
     D = 0.005           # m^2/s
     u = 0.2             # m/s
     k = 2*np.pi/L       # m^-1
     tau = 1/((k**2)*D)
-    
+    # Gets dx and dt from C and s values
     dx = C*D/(u*s)
     dt = C*dx/u
-    
+    # Sets up x vector
     x = np.append(np.arange(0,L,dx),L)
     N = x.size
-    
-    # Initial Condition
+    # Initial condition
     Phi_old = np.sin(k*x)
-    
+    # Coefficients for matrix
     a = -s/2. - C/4.
     b = 1. + s
     c = -s/2. + C/4.
-    
     # Coefficient matrix M
     # N nodes, but N-1 unknowns and eqs
     # because of periodic B.C.
@@ -54,50 +55,41 @@ def trapezoidal(C,s):
         M[i,i-1] = a
         M[i,i] = b
         M[i,i+1] = c
-    
+    # Right hand side of equation
     rhs=np.zeros(N-1)
     time = 0.0    
-    cnt=1
-    while time <= tau:
-        
-        rhs[0] = -a*Phi_old[-2] + (2-b)*Phi_old[0] - c*Phi_old[1]
-        
+    while time <= tau:        
+        rhs[0] = -a*Phi_old[-2] + (2-b)*Phi_old[0] - c*Phi_old[1]        
         for i in range(1,N-1):
-            rhs[i] = -a*Phi_old[i-1] + (2-b)*Phi_old[i] - c*Phi_old[i+1]
-        
+            rhs[i] = -a*Phi_old[i-1] + (2-b)*Phi_old[i] - c*Phi_old[i+1]       
         # Solve matrix M
         Phi = np.linalg.solve(M, rhs)
         # Adding on last node, equal to first node
         Phi = np.insert(Phi,N-1,Phi[0])
-
         time = time + dt
         Phi_old = np.copy(Phi)
-        
-        cnt=cnt+1
-
     return time, Phi
     
 def trapezoidal_alt(C,s):
+    """Alternate way to give solution using the trapezoidal method."""
     # Constants
     L = 1.              # m
     D = 0.005           # m^2/s
     u = 0.2             # m/s
     k = 2*np.pi/L       # m^-1
     tau = 1/((k**2)*D)
-    
+    # Gets dx and dt from C and s values
     dx = C*D/(u*s)
     dt = C*dx/u
-    
+    # Sets up x vector
     x = np.append(np.arange(0,L,dx),L)
     N = x.size
-    
-    # Initial Condition
+    # Initial condition
     Phi_old = np.sin(k*x)
-    
+    # Coefficients for matrix
     a = -s/2. - C/4.
     b = 1. + s
     c = -s/2. + C/4.
-    
     # Coefficient matrix M
     # N nodes, but N-1 unknowns and eqs
     # because of periodic B.C.
@@ -112,52 +104,42 @@ def trapezoidal_alt(C,s):
         M[i,i-1] = a
         M[i,i] = b
         M[i,i+1] = c
-    
     M[N-1,0] = 1
     M[N-1,N-1] = -1     
-    
+    # Right hand side of equation
     rhs=np.zeros(N)
     time = 0.0    
     while time <= tau:
-        
         rhs[0] = -a*Phi_old[-2] + (2-b)*Phi_old[0] - c*Phi_old[1]
-        
         for i in range(1,N-1):
-            rhs[i] = -a*Phi_old[i-1] + (2-b)*Phi_old[i] - c*Phi_old[i+1]
-            
-        rhs[N-1] = 0
-        
+            rhs[i] = -a*Phi_old[i-1] + (2-b)*Phi_old[i] - c*Phi_old[i+1]     
+        rhs[N-1] = 0  
         # Solve matrix M
         Phi = np.linalg.solve(M, rhs)
-
-
         time = time + dt
         Phi_old = np.copy(Phi)
-
     return Phi
 
 def central_diff(C,s): 
+    """Returns numerical solution using the trapezoidal method."""
     # Constants
     L = 1.              # m
     D = 0.005           # m^2/s
     u = 0.2             # m/s
     k = 2*np.pi/L       # m^-1
     tau = 1/((k**2)*D)
-    
+    # Gets dx and dt from C and s values
     dx = C*D/(u*s)
     dt = C*dx/u
-    
+    # Sets up x vector
     x = np.append(np.arange(0,L,dx),L)
     N = x.size
-    
-    # Initial Condition
+    # Initial condition
     Phi_old = np.sin(k*x)    
-    
     # For Central Differencing
     a = u/(2*dx) + D/(dx*dx)
     b = -2*D/(dx*dx)
     c = -u/(2*dx) + D/(dx*dx)
-    
     # Coefficient matrix M
     # N nodes, but N-1 unknowns and eqs
     # because of periodic B.C.
@@ -172,45 +154,39 @@ def central_diff(C,s):
         M[i,i-1] = a
         M[i,i] = b
         M[i,i+1] = c
-    
-    # solver options
+    # Solver options
     options = [1e-6, 1e-6, dt]
-    # time span
+    # Time span
     tspan = [0, tau]
-    # initial (chopping off last point because periodic B.C.)
+    # Initial (chopping off last point because periodic B.C.)
     y0 = Phi_old[0:-1]
-    # call ode45 solver funciton
+    # Call ode45 solver funciton
     tout, yout = solve_dydt(tspan, y0, options,M);
-    
     tend = tout[-1]
-    
     Phi = yout[-1,:]
     Phi = np.append(Phi,Phi[0])
-    
     return tend, Phi
     
 def upwind(C,s): 
+    """Returns numerical solution using the trapezoidal method."""
     # Constants
     L = 1.              # m
     D = 0.005           # m^2/s
     u = 0.2             # m/s
     k = 2*np.pi/L       # m^-1
     tau = 1/((k**2)*D)
-    
+    # Gets dx and dt from C and s values
     dx = C*D/(u*s)
     dt = C*dx/u
-    
+    # Sets up x vector
     x = np.append(np.arange(0,L,dx),L)
     N = x.size
-    
-    # Initial Condition
+    # Initial condition
     Phi_old = np.sin(k*x)    
-    
     # For Upwinding 1st order
     a = u/(dx) + D/(dx*dx)
     b = -u/(dx) - 2*D/(dx*dx)
     c = D/(dx*dx)
-    
     # Coefficient matrix M
     M=np.zeros((N-1,N-1))
     M[0,0] = b
@@ -249,41 +225,36 @@ def upwind(C,s):
 #        M[i,i] = b
 #        M[i,i+1] = c
     
-    # solver options
+    # Solver options
     options = [1e-6, 1e-6, dt]
-    # time span
+    # Time span
     tspan = [0, tau]
-    # initial (chopping off last point because periodic B.C.)
+    # Initial (chopping off last point because periodic B.C.)
     y0 = Phi_old[0:-1]
-    # call ode45 solver funciton
-    
+    # Call ode45 solver funciton
     tout, yout = solve_dydt(tspan, y0, options,M);
     tend = tout[-1]
-    
     Phi = yout[-1,:]
     Phi = np.append(Phi,Phi[0])
-    
     return tend, Phi  
-
    
 def quick(C,s): 
+    """Returns numerical solution using the trapezoidal method."""
     # Constants
     L = 1.              # m
     D = 0.005           # m^2/s
     u = 0.2             # m/s
     k = 2*np.pi/L       # m^-1
     tau = 1/((k**2)*D)
-    
+    # Gets dx and dt from C and s values
     dx = C*D/(u*s)
     dt = C*dx/u
-    
+    # Sets up x vector
     x = np.append(np.arange(0,L,dx),L)
     N = x.size
-    
-    # Initial Condition
-    Phi_old = np.sin(k*x)    
-     
-    # Quick 
+    # Initial condition
+    Phi_old = np.sin(k*x)     
+    # Quick coefficients 
     d = -u/(8*dx)
     a = 7*u/(8*dx) + D/(dx*dx)
     b = -3*u/(8*dx) - 2*D/(dx*dx)
@@ -307,20 +278,15 @@ def quick(C,s):
         M[i,i-1] = a
         M[i,i] = b
         M[i,i+1] = c
-
-    # solver options
+    # Solver options
     options = [1e-6, 1e-6, dt]
-    # time span
+    # Time span
     tspan = [0, tau]
-    # initial (chopping off last point because periodic B.C.)
+    # Initial (chopping off last point because periodic B.C.)
     y0 = Phi_old[0:-1]
-    # call ode45 solver funciton
+    # Call ode45 solver funciton
     tout, yout = solve_dydt(tspan, y0, options,M);
     tend = tout[-1]
-
     Phi = yout[-1,:]
     Phi = np.append(Phi,Phi[0])
-    
     return tend, Phi  
-
-
